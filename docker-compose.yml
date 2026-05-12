@@ -1,0 +1,108 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: quanttrack_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-quanttrack_db}
+      POSTGRES_USER: ${DB_USER:-quanttrack_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-quanttrack_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-quanttrack_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quanttrack_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: quanttrack_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quanttrack_network
+
+  # FastAPI Backend
+  backend:
+    build: ./backend
+    container_name: quanttrack_backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-quanttrack_user}:${DB_PASSWORD:-quanttrack_password}@postgres:5432/${DB_NAME:-quanttrack_db}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      DEBUG: ${DEBUG:-False}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - quanttrack_network
+    restart: unless-stopped
+
+  # Celery Worker
+  celery_worker:
+    build: ./backend
+    container_name: quanttrack_celery
+    command: celery -A app.tasks worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-quanttrack_user}:${DB_PASSWORD:-quanttrack_password}@postgres:5432/${DB_NAME:-quanttrack_db}
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    volumes:
+      - ./backend:/app
+    networks:
+      - quanttrack_network
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build: ./frontend
+    container_name: quanttrack_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8000/api}
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - quanttrack_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  quanttrack_network:
+    driver: bridge
