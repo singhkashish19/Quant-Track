@@ -11,11 +11,21 @@ from sqlalchemy.pool import NullPool
 from app.config import settings
 
 # Create database engine
-# NullPool is used for better compatibility in certain environments
+# NullPool is used for better compatibility in test and serverless environments.
+engine_kwargs = {
+    "echo": settings.db_echo,
+    "pool_pre_ping": True,
+}
+
+if settings.environment == "testing":
+    engine_kwargs["poolclass"] = NullPool
+
+if settings.database_url.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
 engine = create_engine(
     settings.database_url,
-    echo=settings.db_echo,
-    poolclass=NullPool if settings.environment == "testing" else None,
+    **engine_kwargs,
 )
 
 # Session factory

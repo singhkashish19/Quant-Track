@@ -1,841 +1,219 @@
-# QuantTrack — AI-Powered Trading Journal & Behavioral Analytics Platform
+﻿# QuantTrack
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Python](https://img.shields.io/badge/python-3.11-blue.svg)
-![React](https://img.shields.io/badge/react-18.2-blue.svg)
+A practical trading journal and analytics platform built with a FastAPI backend and React frontend.
 
-**A production-grade SaaS analytics platform for traders to record trades, analyze performance, identify behavioral mistakes, and receive AI/ML-driven insights.**
+This repository contains the core application structure for recording trades, managing journal entries, generating analytics summaries, and running workflow-aware ML/NLP inference.
 
 ---
 
-## 🎯 Project Overview
+## What This Project Includes
 
-QuantTrack is a comprehensive trading analytics platform designed for:
-
-- **Retail Traders** seeking performance improvement and behavioral insights
-- **Institutional Traders** managing multiple strategies across different sessions
-- **Trading Coaches** analyzing student performance and patterns
-- **Fintech Platforms** integrating advanced trading analytics
-
-### Key Features
-
-✅ **Trade Management** — Record trades with complete metadata (entry, exit, strategy, emotional state)  
-✅ **Advanced Analytics** — Calculate professional metrics (Sharpe ratio, drawdown, profit factor)  
-✅ **ML-Powered Insights** — Predictive models for trade outcomes and risk detection  
-✅ **NLP Behavioral Analysis** — Detect trading psychology patterns from journal entries  
-✅ **Real-time Dashboard** — Visual performance analytics and equity curves  
-✅ **Production-Ready API** — RESTful API with comprehensive documentation  
-✅ **Secure Authentication** — JWT-based stateless authentication with refresh tokens  
-✅ **Containerized Deployment** — Docker & Docker Compose for easy deployment  
+- FastAPI backend with JWT authentication, SQLAlchemy ORM, and Pydantic validation
+- Trade tracking CRUD API with statistics summary
+- Journal entry workflow with NLP-driven behavioral analysis
+- Analytics endpoints for dashboard metrics and summary views
+- ML inference endpoints for trade prediction, risk detection, and feature explanation
+- React frontend scaffold for dashboard, trades, journal, auth, and analytics pages
+- Local development support using SQLite and optional PostgreSQL via `DATABASE_URL`
+- Docker Compose configuration for backend + frontend + PostgreSQL
 
 ---
 
-## 🏗️ System Architecture
+## Project Status
 
-### High-Level Architecture
+This project is a working prototype with the following implemented capabilities:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    React.js Frontend (SPA)                      │
-│  - Authentication UI                                             │
-│  - Trade Management Dashboard                                    │
-│  - Analytics & Visualizations                                    │
-│  - Journal & Behavioral Insights                                 │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ REST API (HTTPS)
-                           ▼
-┌──────────────────────────────────────────────────────────────────┐
-│              FastAPI Backend (Async Python)                      │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │  Authentication | Trades | Analytics | ML | NLP Engines   │ │
-│  └────────────────────────────────────────────────────────────┘ │
-└──────────────┬───────────────────────────────────────────────────┘
-               │
-     ┌─────────┼──────────┬────────────┐
-     │         │          │            │
-     ▼         ▼          ▼            ▼
-  PostgreSQL  Redis   Celery Workers   ML Models
-  (Database)  (Cache)  (Background Jobs) (Serialized)
-```
+- User registration and login with JWT access and refresh tokens
+- Trade CRUD operations and user-scoped data isolation
+- Trading statistics and dashboard analytics calculation
+- Journal creation and NLP analysis on journal notes
+- ML prediction service with route-level inference and model metadata
+- API documentation available via `/api/docs`
 
-### Modular Architecture
+Not currently implemented or outside the core scope:
 
-```
-backend/
-├── app/
-│   ├── auth/              # Authentication & Authorization
-│   ├── trades/            # Trade Management (CRUD)
-│   ├── analytics/         # Analytics Engine & Metrics
-│   ├── ml/                # ML Pipeline & Models
-│   ├── nlp/               # NLP & Behavioral Analysis
-│   ├── database/          # SQLAlchemy ORM Models
-│   ├── middleware/        # Custom Middleware
-│   ├── utils/             # Helper Functions
-│   └── main.py            # FastAPI Application
-├── tests/                 # Unit & Integration Tests
-├── requirements.txt       # Python Dependencies
-└── Dockerfile             # Container Configuration
-```
+- broker integrations or live market feeds
+- full production-grade Redis/Celery background processing
+- a complete enterprise-grade deployment pipeline
 
 ---
 
-## 💻 Tech Stack
-
-### Frontend
-- **React.js 18** — Modern, component-based UI framework
-- **Redux Toolkit** — State management
-- **Tailwind CSS** — Utility-first CSS framework
-- **Recharts** — Production-grade charting library
-- **Axios** — Promise-based HTTP client
-- **React Router** — Client-side routing
+## Tech Stack
 
 ### Backend
-- **FastAPI** — Modern async web framework with auto-documentation
-- **SQLAlchemy** — Powerful ORM for database operations
-- **Pydantic** — Data validation using Python type hints
-- **PostgreSQL** — ACID-compliant relational database
-- **Redis** — In-memory cache and session storage
-- **Celery** — Distributed task queue for async processing
-- **JWT (python-jose)** — Token-based authentication
 
-### AI/ML
-- **Scikit-learn** — Machine learning algorithms
-- **Pandas** — Data manipulation and analysis
-- **NumPy** — Numerical computing
-- **Joblib** — Model serialization
+- FastAPI
+- SQLAlchemy
+- Pydantic
+- Uvicorn
+- SQLite (default local storage)
+- PostgreSQL (optional via `DATABASE_URL`)
+- python-jose, bcrypt, passlib
+- pandas, numpy, scikit-learn, joblib
+- TextBlob, spaCy, NLTK
 
-### NLP
-- **spaCy** — Industrial-strength NLP
-- **TextBlob** — Simple sentiment analysis
-- **NLTK** — Natural Language Processing toolkit
+### Frontend
 
-### DevOps
-- **Docker** — Container orchestration
-- **Docker Compose** — Multi-container orchestration
-- **Alembic** — Database migrations
-- **Pytest** — Testing framework
+- React
+- Redux Toolkit
+- Tailwind CSS
+- Axios
+
+### Dev / Testing
+
+- Docker / Docker Compose
+- Alembic
+- Pytest
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
 - Python 3.11+
 - Node.js 18+
-- Docker & Docker Compose
-- PostgreSQL 15+
-- Redis 7+
+- npm or yarn
+- Docker and Docker Compose (optional)
 
-### 1. Clone and Setup
+### Backend Setup
 
-```bash
-# Clone repository
-git clone <repository-url>
-cd QUANT\ TRACK
-
-# Create environment file
-cp .env.example .env
-
-# Edit .env with your configuration
-nano .env
-```
-
-### 2. Backend Setup
-
-```bash
-# Navigate to backend
-cd backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+```powershell
+cd 'E:\FAANG\PROJECTS\QUANT TRACK\backend'
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# Initialize database
-alembic upgrade head
-
-# Run backend
-uvicorn app.main:app --reload
 ```
 
-Backend will be available at: `http://localhost:8000`  
-API Documentation: `http://localhost:8000/api/docs`
+Create a `.env` file using `.env.example` if you need custom configuration.
 
-### 3. Frontend Setup
+> By default, the backend uses `sqlite:///./quanttrack.db` when `DATABASE_URL` is not set.
 
-```bash
-# Navigate to frontend
-cd frontend
+Run the backend locally:
 
-# Install dependencies
+```powershell
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Open the API docs at: `http://localhost:8000/api/docs`
+
+### Frontend Setup
+
+```powershell
+cd 'E:\FAANG\PROJECTS\QUANT TRACK\frontend'
 npm install
-
-# Start development server
 npm start
 ```
 
-Frontend will be available at: `http://localhost:3000`
+The frontend is expected on `http://localhost:3000` by default.
 
-### 4. Docker Compose (Recommended)
+### Docker Compose
 
-```bash
-# From project root
-docker-compose up -d
+The repository includes a `docker-compose.yml` that starts:
 
-# Wait for services to initialize (30-60 seconds)
+- `postgres` database
+- `backend` API service
+- `frontend` React service
 
-# Run migrations
-docker-compose exec backend alembic upgrade head
+Start with:
 
-# Check logs
-docker-compose logs -f
+```powershell
+docker compose up -d
 ```
 
-**Services**:
-- Backend API: `http://localhost:8000`
-- Frontend: `http://localhost:3000`
-- PostgreSQL: `localhost:5432`
-- Redis: `localhost:6379`
+If you use Docker Compose, make sure `DATABASE_URL` is configured to point at the `postgres` service.
 
 ---
 
-## 📚 API Documentation
+## API Endpoints
 
-### Authentication Endpoints
+### Health and Root
 
-```
-POST /api/auth/register
-  - Register new user
-  - Request: {email, name, password}
-  - Response: {user, tokens{access_token, refresh_token}}
+- `GET /api/health` — health check
+- `GET /` — root status and documentation links
 
-POST /api/auth/login
-  - Login user
-  - Request: {email, password}
-  - Response: {user, tokens{access_token, refresh_token}}
+### Authentication
 
-POST /api/auth/refresh-token
-  - Refresh access token
-  - Request: {refresh_token}
-  - Response: {access_token, refresh_token, token_type}
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/refresh-token`
+- `GET /api/auth/verify`
+- `POST /api/auth/logout`
 
-GET /api/auth/verify
-  - Verify token and get current user
-  - Headers: {Authorization: Bearer <token>}
-  - Response: {user}
-```
+### Trades
 
-### Trade Management Endpoints
+- `POST /api/trades` — create a trade
+- `GET /api/trades` — list user trades
+- `GET /api/trades/{trade_id}` — get trade details
+- `PUT /api/trades/{trade_id}` — update a trade
+- `DELETE /api/trades/{trade_id}` — delete a trade
+- `GET /api/trades/statistics/summary` — summary statistics
 
-```
-POST /api/trades
-  - Create new trade
-  - Request: TradeCreate schema
-  - Response: TradeResponse
+### Analytics
 
-GET /api/trades
-  - List user trades (paginated)
-  - Query: {skip, limit, symbol, strategy, session}
-  - Response: TradeListResponse
+- `GET /api/analytics/dashboard` — dashboard payload
+- `GET /api/analytics/summary` — summary metrics
 
-GET /api/trades/{id}
-  - Get trade details
-  - Response: TradeResponse
+### ML Insights
 
-PUT /api/trades/{id}
-  - Update trade
-  - Request: TradeUpdate schema
-  - Response: TradeResponse
+- `POST /api/ml/predictions` — trade prediction
+- `POST /api/ml/risk-detection` — risk detection
+- `POST /api/ml/pattern-analysis` — pattern analysis
+- `GET /api/ml/model-performance` — model performance metrics
+- `POST /api/ml/retrain` — retrain models
+- `GET /api/ml/features` — feature importance
 
-DELETE /api/trades/{id}
-  - Delete trade
-  - Response: 204 No Content
+### Journals and NLP
 
-GET /api/trades/statistics/summary
-  - Get trade statistics
-  - Response: TradeStatisticsResponse
-```
-
-### Analytics Endpoints
-
-```
-GET /api/analytics/summary
-  - Get overall metrics summary
-  - Response: AnalyticsSummaryResponse
-
-GET /api/analytics/metrics
-  - Get detailed metrics by period
-  - Query: {period, start_date, end_date}
-  - Response: DetailedMetricsResponse
-
-GET /api/analytics/equity-curve
-  - Get equity curve data for charting
-  - Response: List of {date, equity}
-
-GET /api/analytics/drawdown
-  - Get drawdown analysis
-  - Response: DrawdownAnalysisResponse
-```
-
-### ML Endpoints
-
-```
-POST /api/ml/predictions
-  - Get trade profitability prediction
-  - Request: {trade_id}
-  - Response: {prediction, confidence_score}
-
-POST /api/ml/risk-detection
-  - Detect high-risk trading behavior
-  - Request: {user_id, analysis_period}
-  - Response: {risk_score, risk_factors}
-
-POST /api/ml/pattern-analysis
-  - Cluster and analyze trade patterns
-  - Response: {patterns, clusters}
-```
-
-### Journal Endpoints
-
-```
-POST /api/journals
-  - Create journal entry
-  - Request: {trade_id, notes, emotional_state}
-  - Response: JournalResponse
-
-GET /api/journals
-  - List journal entries
-  - Query: {skip, limit, trade_id}
-  - Response: JournalListResponse
-
-GET /api/journals/{id}/analysis
-  - Get NLP analysis results
-  - Response: NLPAnalysisResponse
-```
+- `POST /api/journals` — create journal entry and analyze it
+- `GET /api/journals` — list journal entries
+- `GET /api/journals/summary` — journal analysis summary
+- `POST /api/journals/analyze` — analyze text without storing it
+- `GET /api/journals/{journal_id}/analysis` — retrieve stored analysis
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema Overview
 
-### Core Tables
+### Core tables
 
-**USERS**
-```sql
-- id (PK)
-- email (UNIQUE)
-- name
-- hashed_password
-- is_active
-- subscription_tier
-- created_at, updated_at
-```
+- `users`
+- `trades`
+- `journals`
+- `nlp_analyses`
+- `ml_predictions`
+- `analytics_summaries`
 
-**TRADES**
-```sql
-- id (PK)
-- user_id (FK)
-- symbol
-- direction (LONG/SHORT)
-- entry_price, exit_price
-- stop_loss, take_profit
-- lot_size
-- pnl, pnl_percentage
-- risk_reward_ratio
-- strategy, timeframe
-- session (NYSE/NSE/CRYPTO/FOREX)
-- emotional_state
-- entry_timestamp, exit_timestamp
-- is_open
-- created_at, updated_at
-```
+### Notes
 
-**JOURNALS**
-```sql
-- id (PK)
-- trade_id (FK)
-- user_id (FK)
-- notes (TEXT)
-- emotional_state
-- created_at, updated_at
-```
-
-**NLP_ANALYSES**
-```sql
-- id (PK)
-- journal_id (FK)
-- user_id (FK)
-- sentiment_score
-- fomo_score, revenge_trade_score, impulsive_score
-- fear_greed_pattern
-- extracted_keywords (JSON)
-- behavior_tags (JSON)
-- created_at
-```
-
-**ML_PREDICTIONS**
-```sql
-- id (PK)
-- trade_id (FK)
-- user_id (FK)
-- model_name
-- prediction_type
-- prediction_value
-- confidence_score
-- features_used (JSON)
-- created_at
-```
-
-**ANALYTICS_SUMMARIES**
-```sql
-- id (PK)
-- user_id (FK)
-- period (DAILY/WEEKLY/MONTHLY)
-- period_date
-- metrics_json (JSON)
-- generated_at
-```
+- Users are isolated by `user_id` on all protected resources.
+- Trades support direction, session, emotional state, result labels, and optional notes.
+- Journal entries can be linked to a trade and store NLP analysis output.
+- ML predictions are persisted with confidence and feature metadata.
+- Analytics summaries can store pre-calculated metric JSON payloads.
 
 ---
 
-## 🤖 Machine Learning Pipeline
+## Testing
 
-### Implemented Models
+Run backend tests from the project root:
 
-1. **Profitability Predictor** (Logistic Regression)
-   - Predicts if a trade setup is likely to be profitable
-   - Input: Trade features (entry/exit ratio, RR ratio, etc.)
-   - Output: Probability (0-1)
-
-2. **Risk Detector** (Random Forest)
-   - Detects high-risk trading behavior
-   - Input: Trade history, emotional states
-   - Output: Risk score, contributing factors
-
-3. **Pattern Clusterer** (K-Means)
-   - Groups profitable setups by similarity
-   - Input: Trade features
-   - Output: Cluster assignments, characteristics
-
-### Feature Engineering
-
-```python
-Features extracted from trades:
-- Risk-Reward Ratio
-- Entry/Exit Time Ratio
-- Lot Size relative to account
-- Time in trade
-- Market conditions (volatility)
-- Historical win rate
-- Strategy performance
-- Emotional state correlation
-```
-
-### Model Training Pipeline
-
-```python
-1. Data Collection → Trades with outcomes
-2. Feature Engineering → Extract 20+ features
-3. Preprocessing → Scaling, encoding, missing value handling
-4. Train/Test Split → 80/20 time-based split
-5. Model Training → Fit models on training data
-6. Evaluation → Accuracy, precision, recall, AUC
-7. Serialization → Save models with joblib
-8. Deployment → Load models for inference
-```
-
----
-
-## 🧠 NLP & Behavioral Analysis
-
-### Behavioral Pattern Detection
-
-Analyzes trading journal entries to detect:
-
-1. **FOMO (Fear of Missing Out)**
-   - Keywords: "missed", "jumped in", "aggressive"
-   - Sentiment: Positive after entry, negative after exit
-
-2. **Revenge Trading**
-   - Keywords: "revenge", "get back", "lost"
-   - High lot sizes after consecutive losses
-
-3. **Impulsive Trading**
-   - Keywords: "suddenly", "impulse", "gut feeling"
-   - Low preparation, high emotion
-
-4. **Fear/Greed Patterns**
-   - Sentiment analysis: Negative (fear) vs. Positive (greed)
-   - Emotional intensity from word analysis
-
-### NLP Implementation
-
-```python
-1. Text Preprocessing
-   - Lowercase, remove special chars
-   - Tokenization, stop word removal
-   
-2. Sentiment Analysis (TextBlob)
-   - Polarity: -1 (negative) to +1 (positive)
-   - Subjectivity: 0 (objective) to 1 (subjective)
-
-3. Emotion Classification
-   - spaCy NER for emotion extraction
-   - Custom behavior keyword matching
-   
-4. Behavioral Tagging
-   - Rule-based pattern detection
-   - Multi-class classification
-```
-
----
-
-## 📊 Key Metrics Calculated
-
-### Basic Metrics
-- **Win Rate** = (Winning Trades / Total Closed Trades) × 100
-- **Profit Factor** = (Sum of Wins / Sum of Losses)
-- **Average RR Ratio** = Mean of all risk-reward ratios
-- **Total P&L** = Sum of all trade P&Ls
-
-### Advanced Metrics
-- **Max Drawdown** = Maximum cumulative loss from peak
-- **Sharpe Ratio** = (Mean Return - Risk-free Rate) / Std Dev
-- **Expectancy** = (Win% × Avg Win) - (Loss% × Avg Loss)
-- **Recovery Factor** = Total P&L / Max Drawdown
-
-### Analytics Summaries
-- Daily/Weekly/Monthly aggregations
-- Strategy-wise performance breakdown
-- Session-wise performance analysis
-- Emotional state correlation with outcomes
-
----
-
-## 🔐 Security Features
-
-### Authentication & Authorization
-- ✅ JWT tokens with 15-minute access, 7-day refresh expiry
-- ✅ Bcrypt password hashing (12+ rounds)
-- ✅ Stateless authentication
-- ✅ Rate limiting on login/register (5 attempts/5 min)
-- ✅ CORS configuration
-
-### Data Protection
-- ✅ SQL injection prevention (parameterized queries)
-- ✅ XSS prevention (Pydantic validation)
-- ✅ CSRF protection (SameSite cookies)
-- ✅ HTTPS enforcement (in production)
-- ✅ Environment variables for secrets
-
-### API Security
-- ✅ Input validation on all endpoints
-- ✅ Request body size limits
-- ✅ User isolation (can only access own data)
-- ✅ Audit logging for sensitive operations
-
----
-
-## 📈 Deployment
-
-### Development Environment
-
-```bash
-docker-compose up -d
-```
-
-### Production Deployment
-
-#### Option 1: AWS EC2
-
-```bash
-# 1. Launch EC2 instance (Ubuntu 22.04)
-# 2. Install Docker, Docker Compose
-# 3. Clone repository
-# 4. Configure .env for production
-# 5. Set up RDS PostgreSQL
-# 6. Set up ElastiCache Redis
-# 7. Deploy with Docker Compose
-
-docker-compose up -d
-```
-
-#### Option 2: Heroku
-
-```bash
-# 1. Create Heroku app
-heroku create quanttrack-app
-
-# 2. Add PostgreSQL addon
-heroku addons:create heroku-postgresql
-
-# 3. Deploy
-git push heroku main
-```
-
-#### Option 3: Kubernetes
-
-See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for Kubernetes setup.
-
----
-
-## 🧪 Testing
-
-### Run Tests
-
-```bash
-# Backend tests
-cd backend
+```powershell
+cd 'E:\FAANG\PROJECTS\QUANT TRACK\backend'
+.\.venv\Scripts\Activate.ps1
 pytest tests/
-
-# With coverage
-pytest --cov=app tests/
-
-# Frontend tests
-cd frontend
-npm test
-```
-
-### Test Structure
-
-```
-backend/tests/
-├── test_auth.py          # Authentication tests
-├── test_trades.py        # Trade CRUD tests
-├── test_analytics.py     # Analytics calculations
-├── test_ml.py            # ML model tests
-├── test_nlp.py           # NLP analysis tests
-└── conftest.py           # Test fixtures
 ```
 
 ---
 
-## 📝 Project Structure
+## Notes for Review
 
-```
-QUANT TRACK/
-│
-├── ARCHITECTURE.md                      # System architecture document
-├── README.md                            # This file
-├── docker-compose.yml                   # Docker Compose configuration
-├── .env.example                         # Environment variables template
-│
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py                      # FastAPI app entry point
-│   │   ├── config.py                    # Configuration management
-│   │   │
-│   │   ├── auth/                        # Authentication module
-│   │   │   ├── security.py              # JWT, password hashing
-│   │   │   ├── service.py               # Auth business logic
-│   │   │   ├── schemas.py               # Pydantic models
-│   │   │   ├── dependencies.py          # FastAPI dependencies
-│   │   │   ├── router.py                # API endpoints
-│   │   │   └── __init__.py
-│   │   │
-│   │   ├── trades/                      # Trade management module
-│   │   │   ├── service.py               # Trade business logic
-│   │   │   ├── schemas.py               # Pydantic models
-│   │   │   ├── router.py                # API endpoints
-│   │   │   └── __init__.py
-│   │   │
-│   │   ├── analytics/                   # Analytics engine
-│   │   │   ├── metrics/                 # Metric calculation
-│   │   │   ├── calculators/             # Advanced calculators
-│   │   │   ├── service.py
-│   │   │   ├── router.py
-│   │   │   └── __init__.py
-│   │   │
-│   │   ├── ml/                          # ML pipeline
-│   │   │   ├── models/                  # Model implementations
-│   │   │   ├── feature_engineering.py
-│   │   │   ├── preprocessing.py
-│   │   │   ├── model_storage/           # Serialized models
-│   │   │   └── __init__.py
-│   │   │
-│   │   ├── nlp/                         # NLP & behavioral analysis
-│   │   │   ├── analyzers/               # Sentiment, emotion, etc.
-│   │   │   ├── service.py
-│   │   │   ├── router.py
-│   │   │   └── __init__.py
-│   │   │
-│   │   ├── database/                    # Database layer
-│   │   │   ├── models.py                # SQLAlchemy models
-│   │   │   ├── session.py               # DB session management
-│   │   │   └── __init__.py
-│   │   │
-│   │   ├── middleware/                  # Custom middleware
-│   │   ├── utils/                       # Helper functions
-│   │   │   ├── helpers.py
-│   │   │   └── __init__.py
-│   │   └── __init__.py
-│   │
-│   ├── tests/                           # Backend tests
-│   │   ├── test_auth.py
-│   │   ├── test_trades.py
-│   │   └── conftest.py
-│   │
-│   ├── requirements.txt                 # Python dependencies
-│   ├── Dockerfile                       # Backend container
-│   └── .dockerignore
-│
-├── frontend/
-│   ├── src/
-│   │   ├── App.js                       # Main App component
-│   │   ├── index.js                     # React entry point
-│   │   │
-│   │   ├── components/                  # Reusable components
-│   │   │   ├── Navbar.js
-│   │   │   ├── Sidebar.js
-│   │   │   ├── TradeForm.js
-│   │   │   ├── Chart.js
-│   │   │   └── ...
-│   │   │
-│   │   ├── pages/                       # Page components
-│   │   │   ├── Dashboard.js
-│   │   │   ├── TradesPage.js
-│   │   │   ├── AnalyticsPage.js
-│   │   │   ├── LoginPage.js
-│   │   │   └── ...
-│   │   │
-│   │   ├── services/                    # API & utilities
-│   │   │   ├── api.js                   # Axios API client
-│   │   │   └── ...
-│   │   │
-│   │   ├── store/                       # Redux state
-│   │   │   ├── index.js
-│   │   │   └── slices/
-│   │   │       ├── authSlice.js
-│   │   │       ├── tradesSlice.js
-│   │   │       └── analyticsSlice.js
-│   │   │
-│   │   ├── hooks/                       # Custom hooks
-│   │   ├── utils/                       # Utilities
-│   │   └── styles/
-│   │       └── globals.css
-│   │
-│   ├── public/
-│   │   └── index.html
-│   │
-│   ├── package.json                     # Dependencies
-│   ├── Dockerfile                       # Frontend container
-│   └── tailwind.config.js               # Tailwind config
-│
-├── datasets/                            # Sample data
-│   ├── sample_trades.csv
-│   └── test_journals.json
-│
-├── notebooks/                           # Jupyter notebooks
-│   ├── ml_exploration.ipynb
-│   ├── nlp_analysis.ipynb
-│   └── data_analysis.ipynb
-│
-├── docs/                                # Documentation
-│   ├── API.md                           # API reference
-│   ├── DEPLOYMENT.md                    # Deployment guide
-│   ├── DATABASE.md                      # Database schema
-│   ├── ML_PIPELINE.md                   # ML documentation
-│   └── NLP_ANALYSIS.md                  # NLP documentation
-│
-└── alembic/                             # Database migrations
-    ├── env.py
-    ├── alembic.ini
-    └── versions/
-```
+- The backend is configured to run with SQLite by default and uses `DATABASE_URL` for PostgreSQL if available.
+- The project includes ML/NLP inference routes, but the current implementation is best described as prototype-level logic rather than a production-grade trading AI system.
+- `docker-compose.yml` is designed to wire together backend, frontend, and PostgreSQL, but local dependency management should be validated before using containers.
 
 ---
 
-## 🎓 Learning Resources
+## License
 
-### Key Implementation Patterns
-
-1. **Service Layer Pattern**
-   - Separates business logic from API routes
-   - Makes testing easier
-   - Improves code reusability
-
-2. **Repository Pattern**
-   - Abstracts database queries
-   - Makes database implementation switchable
-   - Improves testing
-
-3. **Dependency Injection**
-   - FastAPI dependencies for database sessions
-   - Cleaner code, easier testing
-
-4. **Async/Await**
-   - FastAPI async support for I/O operations
-   - Better scalability
-
----
-
-## 👥 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## 🚀 Future Enhancements
-
-### Phase 2 Features
-
-- [ ] Advanced charting with TradingView integration
-- [ ] Real-time trade alerts and notifications
-- [ ] Multi-user team collaboration
-- [ ] Advanced portfolio analysis
-- [ ] Market data integration (Yahoo Finance, Alpha Vantage)
-- [ ] Automated trade recording from brokers
-- [ ] Mobile app (React Native)
-- [ ] Backtesting engine
-- [ ] Advanced ML models (Deep Learning, LSTM)
-
-### Phase 3 Features
-
-- [ ] Social trading (share strategies)
-- [ ] AI trading coach
-- [ ] Broker integration APIs
-- [ ] Advanced options analytics
-- [ ] Risk management tools
-- [ ] Market sentiment analysis
-- [ ] Community features
-- [ ] Premium features & subscriptions
-
----
-
-## 📞 Support
-
-For support, email support@quanttrack.com or open an issue on GitHub.
-
----
-
-## 🙏 Acknowledgments
-
-- Built with [FastAPI](https://fastapi.tiangolo.com/) and [React](https://react.dev/)
-- Analytics powered by [scikit-learn](https://scikit-learn.org/)
-- NLP by [spaCy](https://spacy.io/)
-- Hosted with [Docker](https://www.docker.com/)
-
----
-
-**Made with ❤️ by the QuantTrack Team**
-
----
-
-**Last Updated**: May 2024  
-**Version**: 1.0.0
+MIT

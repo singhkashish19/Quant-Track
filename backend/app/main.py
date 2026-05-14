@@ -2,7 +2,8 @@
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -10,7 +11,9 @@ from app.analytics.router import router as analytics_router
 from app.auth.router import router as auth_router
 from app.config import settings
 from app.database import init_db
+from app.logger import logger
 from app.ml.router import router as ml_router
+from app.middleware.logging import LoggingMiddleware
 from app.nlp.router import router as journals_router
 from app.trades.router import router as trades_router
 
@@ -20,13 +23,13 @@ async def lifespan(app: FastAPI):
     """Initialize application resources."""
     try:
         init_db()
-        print("Database initialized successfully")
+        logger.info("Database initialized successfully")
     except Exception as exc:
-        print(f"Database initialization failed: {exc}")
+        logger.error("Database initialization failed: %s", exc, exc_info=True)
 
     yield
 
-    print("Application shutting down...")
+    logger.info("Application shutting down...")
 
 
 def create_app() -> FastAPI:
@@ -48,6 +51,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    app.add_middleware(LoggingMiddleware)
 
     @app.get("/api/health", tags=["Health"])
     def health_check():
@@ -72,12 +77,27 @@ def create_app() -> FastAPI:
     app.include_router(journals_router)
     app.include_router(ml_router)
 
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        logger.warning("HTTP error %s: %s %s", exc.status_code, request.url.path, exc.detail)
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        logger.warning("Validation error for %s: %s", request.url.path, exc.errors())
+        return JSONResponse(
+            status_code=422,
+            content={"detail": exc.errors(), "body": exc.body},
+        )
+
     @app.exception_handler(ValueError)
-    async def value_error_handler(request, exc):
+    async def value_error_handler(request: Request, exc: ValueError):
+        logger.warning("Value error on %s: %s", request.url.path, str(exc))
         return JSONResponse(status_code=400, content={"detail": str(exc)})
 
     @app.exception_handler(Exception)
-    async def general_exception_handler(request, exc):
+    async def general_exception_handler(request: Request, exc: Exception):
+        logger.exception("Unhandled exception for %s", request.url.path)
         return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
     return app
