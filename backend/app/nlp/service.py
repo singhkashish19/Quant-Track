@@ -11,6 +11,7 @@ except ModuleNotFoundError:  # Allows the API to boot before optional NLP deps a
     TextBlob = None
 
 from app.database.models import Journal, NLPAnalysis, Trade
+from app.logger import logger
 from app.nlp.schemas import JournalCreate
 
 
@@ -46,9 +47,11 @@ class NLPService:
 
     @staticmethod
     def create_journal(user_id: int, data: JournalCreate, db: Session) -> Tuple[Journal, NLPAnalysis]:
+        logger.info("Creating journal entry for user=%s trade=%s", user_id, data.trade_id)
         if data.trade_id:
             trade = db.query(Trade).filter(Trade.id == data.trade_id, Trade.user_id == user_id).first()
             if not trade:
+                logger.warning("Journal creation failed: trade %s not found for user %s", data.trade_id, user_id)
                 raise ValueError("Trade not found")
 
         journal = Journal(

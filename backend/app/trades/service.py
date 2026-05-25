@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 from app.database.models import Trade, TradeDirection, TradeResult
 from app.trades.schemas import TradeCreate, TradeUpdate, TradeStatisticsResponse
+from app.logger import logger
 
 
 class TradeService:
@@ -28,6 +29,10 @@ class TradeService:
         Returns:
             Trade: Created trade object
         """
+        logger.info("Creating trade for user=%s symbol=%s", user_id, trade_data.symbol)
+        if trade_data.exit_timestamp is not None and trade_data.exit_timestamp < trade_data.entry_timestamp:
+            raise ValueError("exit_timestamp must be after entry_timestamp")
+
         # Calculate PnL if trade is closed
         pnl = None
         pnl_percentage = None
@@ -175,9 +180,13 @@ class TradeService:
             Trade: Updated trade object
         """
         trade = TradeService.get_trade(trade_id, user_id, db)
+        logger.info("Updating trade %s for user=%s", trade_id, user_id)
         
         # Update fields if provided
         update_data = trade_data.model_dump(exclude_unset=True)
+        current_entry = update_data.get("entry_timestamp", trade.entry_timestamp)
+        if update_data.get("exit_timestamp") is not None and update_data["exit_timestamp"] < current_entry:
+            raise ValueError("exit_timestamp must be after entry_timestamp")
         
         for field, value in update_data.items():
             if value is not None:
@@ -194,6 +203,10 @@ class TradeService:
             
             trade.is_open = False
             trade.result = TradeService._result_from_pnl(trade.pnl)
+        else:
+            trade.is_open = True
+            if trade.pnl is None:
+                trade.result = None
         
         db.commit()
         db.refresh(trade)

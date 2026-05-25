@@ -7,11 +7,25 @@ Supports development, testing, and production environments.
 
 from functools import lru_cache
 from typing import List, Optional
-from pydantic import BaseSettings, Field, field_validator
+
+try:
+    from pydantic import BaseSettings, Field, field_validator
+except ImportError:
+    from pydantic_settings import BaseSettings
+    from pydantic import Field, field_validator
+
+ConfigDict = dict
 
 
 class Settings(BaseSettings):
     """Application configuration loaded from environment variables."""
+
+    model_config = ConfigDict(
+        extra="allow",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
 
     # Application
     app_name: str = "QuantTrack"
@@ -62,11 +76,6 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
 
 
 @lru_cache()

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { StatCard, TradeTable } from '../components';
+import { LoadingState, StatCard, TradeTable } from '../components';
 import { tradesAPI } from '../services/api';
 
 function TradesPage() {
@@ -28,12 +28,25 @@ function TradesPage() {
     entry_timestamp: defaultTimestamp,
   });
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const loadTrades = () => {
-    Promise.allSettled([tradesAPI.list({ limit: 20 }), tradesAPI.getStatistics()]).then((results) => {
-      if (results[0].status === 'fulfilled') setTrades(results[0].value.data.trades || []);
-      if (results[1].status === 'fulfilled') setStats(results[1].value.data);
-    });
+  const loadTrades = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const [tradesResponse, statsResponse] = await Promise.all([
+        tradesAPI.list({ limit: 20 }),
+        tradesAPI.getStatistics(),
+      ]);
+      setTrades(tradesResponse.data.trades || []);
+      setStats(statsResponse.data);
+    } catch (fetchError) {
+      setError(fetchError.response?.data?.detail || 'Unable to load trades.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(loadTrades, []);
@@ -67,12 +80,17 @@ function TradesPage() {
         <p className="mt-1 text-sm text-slate-600">Record trades with market, execution, risk, and behavioral context.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total trades" value={stats?.total_trades ?? '--'} />
-        <StatCard label="Win rate" value={stats ? `${stats.win_rate}%` : '--'} />
-        <StatCard label="Total PnL" value={stats ? `$${Number(stats.total_pnl).toFixed(2)}` : '--'} />
-        <StatCard label="Profit factor" value={stats?.profit_factor ?? '--'} />
-      </div>
+      {loading ? (
+        <LoadingState label="Loading trades and analytics..." />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard label="Total trades" value={stats?.total_trades ?? '--'} />
+          <StatCard label="Win rate" value={stats ? `${stats.win_rate}%` : '--'} />
+          <StatCard label="Total PnL" value={stats ? `$${Number(stats.total_pnl).toFixed(2)}` : '--'} />
+          <StatCard label="Profit factor" value={stats?.profit_factor ?? '--'} />
+        </div>
+      )}
+      {error && <div className="alert alert-error">{error}</div>}
 
       <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-4">
         <h2 className="text-sm font-semibold">Add Trade</h2>

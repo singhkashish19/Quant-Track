@@ -36,7 +36,7 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI app."""
     app = FastAPI(
         title="QuantTrack API",
-        description="AI-Powered Trading Journal & Behavioral Analytics Platform",
+        description="ML/NLP-powered trading journal and behavioral analytics platform.",
         version=settings.app_version,
         docs_url="/api/docs",
         redoc_url="/api/redoc",
@@ -80,20 +80,23 @@ def create_app() -> FastAPI:
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
         logger.warning("HTTP error %s: %s %s", exc.status_code, request.url.path, exc.detail)
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail, "status_code": exc.status_code},
+        )
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         logger.warning("Validation error for %s: %s", request.url.path, exc.errors())
         return JSONResponse(
             status_code=422,
-            content={"detail": exc.errors(), "body": exc.body},
+            content={"detail": exc.errors(), "status_code": 422},
         )
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):
         logger.warning("Value error on %s: %s", request.url.path, str(exc))
-        return JSONResponse(status_code=400, content={"detail": str(exc)})
+        return JSONResponse(status_code=400, content={"detail": str(exc), "status_code": 400})
 
     @app.exception_handler(Exception)
     async def general_exception_handler(request: Request, exc: Exception):

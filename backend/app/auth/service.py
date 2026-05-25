@@ -15,6 +15,7 @@ from app.auth.security import (
     verify_token,
 )
 from app.auth.schemas import UserRegister, UserLogin, UserResponse, TokenResponse
+from app.logger import logger
 
 
 class AuthService:
@@ -37,6 +38,7 @@ class AuthService:
         Raises:
             ValueError: If email already exists
         """
+        logger.info("Registering new user: %s", user_data.email)
         try:
             # Check if user exists
             existing_user = db.query(User).filter(
@@ -44,6 +46,7 @@ class AuthService:
             ).first()
             
             if existing_user:
+                logger.warning("Registration attempt with existing email: %s", user_data.email)
                 raise ValueError(f"Email {user_data.email} already registered")
             
             # Hash password
@@ -62,10 +65,12 @@ class AuthService:
             db.commit()
             db.refresh(user)
             
+            logger.info("User created successfully: %s", user_data.email)
             return user
             
         except IntegrityError as e:
             db.rollback()
+            logger.error("Registration failed for %s: %s", user_data.email, e)
             raise ValueError(f"Registration failed: {str(e)}")
     
     @staticmethod
@@ -128,6 +133,7 @@ class AuthService:
         payload = verify_token(refresh_token)
         
         if not payload or payload.get("type") != "refresh":
+            logger.warning("Invalid refresh token used")
             raise ValueError("Invalid refresh token")
         
         user_id = payload.get("sub")

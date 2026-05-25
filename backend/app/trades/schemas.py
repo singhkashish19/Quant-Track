@@ -42,7 +42,7 @@ class TradeCreate(BaseModel):
     revenge_trade_flag: bool = Field(False, description="Whether trade was a revenge trade")
     entry_timestamp: datetime = Field(..., description="Entry time")
     exit_timestamp: Optional[datetime] = Field(None, description="Exit time")
-    notes: Optional[str] = Field(None, description="Additional notes")
+    notes: Optional[str] = Field(None, max_length=1000, description="Additional notes")
     
     class Config:
         json_schema_extra = {
@@ -91,7 +91,7 @@ class TradeUpdate(BaseModel):
     revenge_trade_flag: Optional[bool] = Field(None)
     entry_timestamp: Optional[datetime] = Field(None)
     exit_timestamp: Optional[datetime] = Field(None)
-    notes: Optional[str] = Field(None)
+    notes: Optional[str] = Field(None, max_length=1000)
 
 
 class TradeFilter(BaseModel):

@@ -9,6 +9,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.database.models import MLPrediction, Trade
+from app.logger import logger
 from app.ml.feature_engineering import (
     CATEGORICAL_FEATURES,
     FEATURE_COLUMNS,
@@ -35,7 +36,8 @@ class MLService:
 
     @staticmethod
     def retrain(user_id: int, db: Session) -> RetrainResponse:
-        bundle = MLService._train_bundle(user_id, db)
+        logger.info("Retraining ML models for user=%s", user_id)
+        bundle = MLService._load_or_train(user_id, db)
         return RetrainResponse(message="Models retrained successfully", performance=MLService._performance_from_bundle(bundle))
 
     @staticmethod
@@ -60,6 +62,7 @@ class MLService:
 
     @staticmethod
     def predict(user_id: int, request: PredictionRequest, db: Session) -> PredictionResponse:
+        logger.info("Predicting trade outcomes for user=%s trade=%s", user_id, request.trade_id)
         bundle = MLService._load_or_train(user_id, db)
         trade = MLService._resolve_trade(user_id, request, db)
         history = FeatureEngineeringService.rows_for_user(user_id, db)
@@ -195,9 +198,10 @@ class MLService:
         joblib = MLService._joblib()
         if MLService.MODEL_FILE.exists():
             try:
+                logger.info("Loading existing ML bundle from disk for user=%s", user_id)
                 return joblib.load(MLService.MODEL_FILE)
             except Exception:
-                pass
+                logger.warning("Failed to load existing ML bundle, retraining for user=%s", user_id)
         return MLService._train_bundle(user_id, db)
 
     @staticmethod
@@ -269,6 +273,7 @@ class MLService:
         row: dict,
         db: Session,
     ) -> None:
+        logger.debug("Persisting ML predictions for user=%s trade=%s", user_id, trade_id)
         for prediction_type, value, confidence in [
             ("profitability", profitability, max(profitability, 1 - profitability)),
             ("risk", risk_score, max(risk_score, 1 - risk_score)),

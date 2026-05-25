@@ -11,6 +11,7 @@ from app.auth.security import verify_token
 from app.auth.service import AuthService
 from app.database import get_db
 from app.database.models import User
+from app.logger import logger
 
 
 security = HTTPBearer()
@@ -47,10 +48,18 @@ async def get_current_user(
     payload = verify_token(token)
     
     if not payload:
+        logger.warning("Invalid or expired token received")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if payload.get("type") != "access":
+        logger.warning("Token type mismatch, expected access token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid access token",
         )
     
     # Extract user ID from token
