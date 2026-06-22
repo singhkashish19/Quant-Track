@@ -18,7 +18,9 @@ function JournalPage() {
     });
   };
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const handleAnalyze = async () => {
     const response = await journalsAPI.create({ notes, emotional_state: emotionalState });

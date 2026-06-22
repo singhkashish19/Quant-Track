@@ -16,7 +16,9 @@ function InsightsPage() {
     });
   };
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const handlePredict = async () => {
     const response = await mlAPI.getPredictions({});

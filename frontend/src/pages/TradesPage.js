@@ -26,6 +26,7 @@ function TradesPage() {
     slippage: 0.1,
     trade_duration: 45,
     entry_timestamp: defaultTimestamp,
+    exit_timestamp: defaultTimestamp,
   });
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,9 @@ function TradesPage() {
     }
   };
 
-  useEffect(loadTrades, []);
+  useEffect(() => {
+    loadTrades();
+  }, []);
 
   const handleChange = (event) => {
     const { name, value, type } = event.target;
@@ -59,10 +62,15 @@ function TradesPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setMessage('');
+    const entryTimestamp = new Date(form.entry_timestamp);
+    const exitTimestamp = form.exit_price
+      ? new Date(form.exit_timestamp || new Date(entryTimestamp.getTime() + 60_000).toISOString())
+      : null;
+
     const payload = {
       ...form,
-      entry_timestamp: new Date(form.entry_timestamp).toISOString(),
-      exit_timestamp: form.exit_price ? new Date(form.entry_timestamp).toISOString() : null,
+      entry_timestamp: entryTimestamp.toISOString(),
+      exit_timestamp: exitTimestamp ? exitTimestamp.toISOString() : null,
     };
     try {
       await tradesAPI.create(payload);
@@ -111,6 +119,7 @@ function TradesPage() {
           <Input label="Slippage" name="slippage" type="number" value={form.slippage} onChange={handleChange} />
           <Input label="Duration min" name="trade_duration" type="number" value={form.trade_duration} onChange={handleChange} />
           <Input label="Entry time" name="entry_timestamp" type="datetime-local" value={form.entry_timestamp} onChange={handleChange} />
+          <Input label="Exit time" name="exit_timestamp" type="datetime-local" value={form.exit_timestamp} onChange={handleChange} />
         </div>
         <div className="mt-4 flex items-center gap-3">
           <button className="btn-primary" type="submit">Save trade</button>

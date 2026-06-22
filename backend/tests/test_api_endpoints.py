@@ -85,3 +85,31 @@ def test_trade_validation_rejects_bad_timestamp(client):
     response = client.post("/api/trades", json=payload, headers=auth_headers(token))
     assert response.status_code == 400
     assert "exit_timestamp must be after entry_timestamp" in response.json()["detail"]
+
+
+def test_trade_statistics_includes_break_even_trades(client):
+    token = register_user(client, email="breakeven@example.com")
+    payload = {
+        "symbol": "AAPL",
+        "direction": "LONG",
+        "entry_price": 100.0,
+        "exit_price": 100.0,
+        "lot_size": 1,
+        "entry_timestamp": "2026-10-01T10:00:00",
+        "exit_timestamp": "2026-10-01T10:05:00",
+    }
+    response = client.post("/api/trades", json=payload, headers=auth_headers(token))
+    assert response.status_code == 201
+
+    stats_response = client.get("/api/trades/statistics/summary", headers=auth_headers(token))
+    assert stats_response.status_code == 200
+    stats = stats_response.json()
+
+    assert stats["total_trades"] == 1
+    assert stats["winning_trades"] == 0
+    assert stats["losing_trades"] == 0
+    assert stats["win_rate"] == 0.0
+    assert stats["total_pnl"] == 0.0
+    assert stats["average_pnl"] == 0.0
+    assert stats["largest_win"] == 0.0
+    assert stats["largest_loss"] == 0.0

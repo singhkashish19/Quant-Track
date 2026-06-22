@@ -6,7 +6,7 @@ Business logic for trade management.
 
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 from app.database.models import Trade, TradeDirection, TradeResult
 from app.trades.schemas import TradeCreate, TradeUpdate, TradeStatisticsResponse
@@ -30,7 +30,14 @@ class TradeService:
             Trade: Created trade object
         """
         logger.info("Creating trade for user=%s symbol=%s", user_id, trade_data.symbol)
-        if trade_data.exit_timestamp is not None and trade_data.exit_timestamp < trade_data.entry_timestamp:
+        exit_timestamp = trade_data.exit_timestamp
+        if trade_data.exit_price is not None and exit_timestamp is None:
+            exit_timestamp = max(
+                datetime.utcnow(),
+                trade_data.entry_timestamp + timedelta(minutes=1),
+            )
+
+        if exit_timestamp is not None and exit_timestamp < trade_data.entry_timestamp:
             raise ValueError("exit_timestamp must be after entry_timestamp")
 
         # Calculate PnL if trade is closed
@@ -84,7 +91,7 @@ class TradeService:
             overtrading_flag=trade_data.overtrading_flag,
             revenge_trade_flag=trade_data.revenge_trade_flag,
             entry_timestamp=trade_data.entry_timestamp,
-            exit_timestamp=trade_data.exit_timestamp,
+            exit_timestamp=exit_timestamp,
             notes=trade_data.notes,
             is_open=trade_data.exit_price is None,
         )
@@ -262,7 +269,7 @@ class TradeService:
         losing_trades = [t for t in closed_trades if t.pnl < 0]
         
         win_rate = (len(winning_trades) / len(closed_trades) * 100) if closed_trades else 0.0
-        total_pnl = sum(t.pnl for t in closed_trades if t.pnl)
+        total_pnl = sum(t.pnl for t in closed_trades if t.pnl is not None)
         average_pnl = total_pnl / len(closed_trades) if closed_trades else 0.0
         
         largest_win = max([t.pnl for t in winning_trades]) if winning_trades else 0.0
