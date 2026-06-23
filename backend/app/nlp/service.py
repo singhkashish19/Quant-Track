@@ -91,6 +91,10 @@ class NLPService:
         }
         sentiment_score = NLPService._sentiment_score(text)
         behavior_tags = [label for label, score in scores.items() if score >= 0.34]
+
+        # If revenge trading behavior detected, treat sentiment as non-positive
+        if scores.get("revenge_trading", 0) > 0 and sentiment_score > 0:
+            sentiment_score = -abs(round(sentiment_score, 3))
         if not behavior_tags and sentiment_score > 0.2:
             behavior_tags.append("positive_execution")
         if not behavior_tags and sentiment_score < -0.2:

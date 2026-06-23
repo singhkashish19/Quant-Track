@@ -9,6 +9,7 @@ from typing import Optional, Any, Dict, Union
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from app.config import settings
+from app.logger import logger
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -139,27 +140,8 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
             algorithms=[settings.algorithm],
         )
         return payload
-    except JWTError:
+    except JWTError as exc:
+        logger.warning("Invalid JWT token: %s", exc)
         return None
 
-
-def decode_token(token: str) -> Optional[Dict[str, Any]]:
-    """
-    Decode token without verification (use with caution).
-    
-    Args:
-        token: JWT token string
-        
-    Returns:
-        dict: Token payload
-    """
-    try:
-        payload = jwt.decode(
-            token,
-            settings.secret_key,
-            algorithms=[settings.algorithm],
-        )
-        return payload
-    except JWTError:
-        return None
 

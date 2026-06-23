@@ -38,6 +38,7 @@ cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+# Create a local .env from the example and DO NOT commit it to source control
 copy ..\.env.example .env
 ```
 

@@ -41,7 +41,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # JWT & Security
-    secret_key: str = Field("your_super_secret_key_change_in_production", env="SECRET_KEY")
+    # SECRET_KEY must be provided via environment in production
+    secret_key: str = Field(..., env="SECRET_KEY")
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
@@ -75,6 +76,15 @@ class Settings(BaseSettings):
     def parse_cors_origins(cls, value: Optional[str]):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
+
+    @field_validator("secret_key", mode="before")
+    @classmethod
+    def validate_secret_key(cls, value: str):
+        if not value or not isinstance(value, str):
+            raise ValueError("SECRET_KEY must be set in environment variables")
+        if value.startswith("your_") or len(value) < 32:
+            raise ValueError("SECRET_KEY is too weak. Provide a securely generated key of at least 32 characters")
         return value
 
 

@@ -33,6 +33,9 @@ class MLService:
     MODEL_VERSION = "phase2-sklearn-v1"
     STORAGE_DIR = Path(__file__).resolve().parent / "model_storage"
     MODEL_FILE = STORAGE_DIR / "quanttrack_ml_bundle.joblib"
+    # Simple in-memory cache to avoid repeated disk unpickling during runtime
+    _BUNDLE_CACHE: dict | None = None
+    _BUNDLE_MTIME: float | None = None
 
     @staticmethod
     def retrain(user_id: int, db: Session) -> RetrainResponse:
@@ -63,46 +66,64 @@ class MLService:
     @staticmethod
     def predict(user_id: int, request: PredictionRequest, db: Session) -> PredictionResponse:
         logger.info("Predicting trade outcomes for user=%s trade=%s", user_id, request.trade_id)
-        bundle = MLService._load_or_train(user_id, db)
-        trade = MLService._resolve_trade(user_id, request, db)
-        history = FeatureEngineeringService.rows_for_user(user_id, db)
-        consecutive_losses = MLService._current_consecutive_losses(user_id, db)
-        row = FeatureEngineeringService.row_from_trade(trade, history=history, consecutive_losses=consecutive_losses)
-
-        pd = MLService._pd()
-        frame = pd.DataFrame([row])[FEATURE_COLUMNS]
-        profit_model = bundle["profit_model"]
-        risk_model = bundle["risk_model"]
-        cluster_model = bundle["cluster_model"]
-
-        profit_probability = float(profit_model.predict_proba(frame)[0][1])
-        risk_score = float(risk_model.predict_proba(frame)[0][1])
-        cluster = int(cluster_model.predict(frame)[0])
-        confidence = round(max(profit_probability, 1 - profit_probability) * (1 - abs(risk_score - 0.5) / 2), 3)
-        recommendations = MLService._recommendations(row, profit_probability, risk_score, cluster)
-        trade_id = getattr(trade, "id", None) if not isinstance(trade, dict) else trade.get("id")
-
-        if trade_id:
-            MLService._persist_prediction(
-                user_id=user_id,
-                trade_id=trade_id,
-                profitability=profit_probability,
-                risk_score=risk_score,
-                cluster=cluster,
-                row=row,
-                db=db,
+        try:
+            bundle = MLService._load_or_train(user_id, db)
+            trade = MLService._resolve_trade(user_id, request, db)
+            history = FeatureEngineeringService.rows_for_user(user_id, db)
+            consecutive_losses = MLService._current_consecutive_losses(user_id, db)
+            row = FeatureEngineeringService.row_from_trade(
+                trade, history=history, consecutive_losses=consecutive_losses
             )
 
-        return PredictionResponse(
-            trade_id=trade_id,
-            profitability_probability=round(profit_probability, 3),
-            risk_score=round(risk_score, 3),
-            pattern_cluster=cluster,
-            confidence_score=confidence,
-            recommendations=recommendations,
-            feature_snapshot={key: row[key] for key in FEATURE_COLUMNS if key in row},
-            model_version=bundle["model_version"],
-        )
+            pd = MLService._pd()
+            frame = pd.DataFrame([row])[FEATURE_COLUMNS]
+            profit_model = bundle["profit_model"]
+            risk_model = bundle["risk_model"]
+            cluster_model = bundle["cluster_model"]
+
+            profit_probability = float(profit_model.predict_proba(frame)[0][1])
+            risk_score = float(risk_model.predict_proba(frame)[0][1])
+            cluster = int(cluster_model.predict(frame)[0])
+            confidence = round(
+                max(profit_probability, 1 - profit_probability) * (1 - abs(risk_score - 0.5) / 2), 3
+            )
+            recommendations = MLService._recommendations(row, profit_probability, risk_score, cluster)
+            trade_id = getattr(trade, "id", None) if not isinstance(trade, dict) else trade.get("id")
+
+            if trade_id:
+                MLService._persist_prediction(
+                    user_id=user_id,
+                    trade_id=trade_id,
+                    profitability=profit_probability,
+                    risk_score=risk_score,
+                    cluster=cluster,
+                    row=row,
+                    db=db,
+                )
+
+            return PredictionResponse(
+                trade_id=trade_id,
+                profitability_probability=round(profit_probability, 3),
+                risk_score=round(risk_score, 3),
+                pattern_cluster=cluster,
+                confidence_score=confidence,
+                recommendations=recommendations,
+                feature_snapshot={key: row[key] for key in FEATURE_COLUMNS if key in row},
+                model_version=bundle.get("model_version", "unknown"),
+            )
+        except Exception as exc:
+            logger.exception("ML prediction failed for user=%s: %s", user_id, exc)
+            # Return a safe, neutral prediction response so API remains stable
+            return PredictionResponse(
+                trade_id=None,
+                profitability_probability=0.5,
+                risk_score=0.5,
+                pattern_cluster=0,
+                confidence_score=0.0,
+                recommendations=["Model unavailable - returned neutral prediction"],
+                feature_snapshot={},
+                model_version="unavailable",
+            )
 
     @staticmethod
     def _train_bundle(user_id: int, db: Session) -> dict:
@@ -196,13 +217,29 @@ class MLService:
     @staticmethod
     def _load_or_train(user_id: int, db: Session) -> dict:
         joblib = MLService._joblib()
+        # If file exists, attempt to load from an in-memory cache keyed by mtime
         if MLService.MODEL_FILE.exists():
             try:
+                mtime = MLService.MODEL_FILE.stat().st_mtime
+                if MLService._BUNDLE_CACHE is not None and MLService._BUNDLE_MTIME == mtime:
+                    logger.debug("Using cached ML bundle in memory for user=%s", user_id)
+                    return MLService._BUNDLE_CACHE
+
                 logger.info("Loading existing ML bundle from disk for user=%s", user_id)
-                return joblib.load(MLService.MODEL_FILE)
+                bundle = joblib.load(MLService.MODEL_FILE)
+                MLService._BUNDLE_CACHE = bundle
+                MLService._BUNDLE_MTIME = mtime
+                return bundle
             except Exception:
                 logger.warning("Failed to load existing ML bundle, retraining for user=%s", user_id)
-        return MLService._train_bundle(user_id, db)
+        # Train and persist bundle if not available
+        bundle = MLService._train_bundle(user_id, db)
+        MLService._BUNDLE_CACHE = bundle
+        try:
+            MLService._BUNDLE_MTIME = MLService.MODEL_FILE.stat().st_mtime
+        except Exception:
+            MLService._BUNDLE_MTIME = None
+        return bundle
 
     @staticmethod
     def _load_demo_rows() -> list[dict]:
